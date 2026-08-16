@@ -1,0 +1,20 @@
+
+<script>
+function toggleMenu(){
+  const side=document.getElementById('side'),backdrop=document.getElementById('mobileBackdrop');
+  if(!side||!backdrop)return;
+  const open=!side.classList.contains('open');
+  side.classList.toggle('open',open);
+  backdrop.classList.toggle('open',open);
+  document.body.classList.toggle('menu-open',open);
+}
+function closeMenu(){
+  document.getElementById('side')?.classList.remove('open');
+  document.getElementById('mobileBackdrop')?.classList.remove('open');
+  document.body.classList.remove('menu-open');
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',closeMenu));
+  window.addEventListener('resize',()=>{if(window.innerWidth>700)closeMenu()});
+});
+</script>
