@@ -95,6 +95,15 @@ document.addEventListener('DOMContentLoaded',function(){
   var buttons=document.querySelectorAll('#nav button');
   for(var i=0;i<buttons.length;i++)buttons[i].addEventListener('click',closeMenu);
   window.addEventListener('resize',function(){if(window.innerWidth>700)closeMenu()});
+  var main=document.querySelector('main');
+  if(main){
+    var node=main.firstChild;
+    while(node){
+      var next=node.nextSibling;
+      if(node.nodeType===3&&String(node.nodeValue||'').trim()==='>')main.removeChild(node);
+      node=next;
+    }
+  }
 });
 </script>
 >
