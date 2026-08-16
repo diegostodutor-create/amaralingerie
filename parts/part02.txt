@@ -1,0 +1,37 @@
+>
+  <section id="expedicao" class="panel"></section>
+  <section id="cadastros" class="panel"></section>
+  <section id="ficha" class="panel"></section>
+  <section id="custos" class="panel"></section>
+  <section id="financeiro" class="panel"></section>
+  <section id="usuarios" class="panel"></section>
+</main>
+</div>
+
+<div id="modal" class="modal"><div class="modalbox"><div class="modalhead"><h2 id="modalTitle"></h2><button class="x" onclick="closeModal()">×</button></div><div id="modalBody"></div></div></div>
+
+<script>
+const API='https://pklluxvpvbvomthbzahu.supabase.co/functions/v1/amara-api';
+const LOGIN='https://pklluxvpvbvomthbzahu.supabase.co/functions/v1/amara-login';
+const COST='https://pklluxvpvbvomthbzahu.supabase.co/functions/v1/amara-costing';
+const FIN='https://pklluxvpvbvomthbzahu.supabase.co/functions/v1/amara-finance';
+let token=sessionStorage.getItem('amara_token')||'', me=null, cache={};
+const $=id=>document.getElementById(id), num=v=>Number(v)||0, esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const money=v=>num(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}), dateBR=v=>v?String(v).slice(0,10).split('-').reverse().join('/'):'—';
+function pill(s){const t=String(s||'');let c=['Concluído','Entregue','Aprovado','Pago','Pronto'].includes(t)?'ok':['Atrasado','Reprovado','Cancelado'].includes(t)?'bad':['Em produção','Separando','Corte planejado'].includes(t)?'blue':'warn';return `<span class="pill ${c}">${esc(t)}</span>`}
+function modal(title,body){$('modalTitle').textContent=title;$('modalBody').innerHTML=body;$('modal').classList.add('open')}function closeModal(){$('modal').classList.remove('open')}
+async function req(base,path,opt={}){const r=await fetch(base+path,{...opt,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...(opt.headers||{})}});const b=await r.json().catch(()=>({}));if(!r.ok)throw new Error(b.error||`Erro ${r.status}`);return b}
+const api=(p,o)=>req(API,p,o), loginApi=(o)=>req(LOGIN,'',o), costApi=(p,o)=>req(COST,p,o), finApi=(p,o)=>req(FIN,p,o);
+async function login(){try{const b=await loginApi({method:'POST',body:JSON.stringify({username:$('loginUser').value,password:$('loginPass').value})});token=b.token;me=b.user;sessionStorage.setItem('amara_token',token);sessionStorage.setItem('amara_user',JSON.stringify(me));showApp();await refreshAll()}catch(e){$('loginMsg').textContent=e.message}}
+async function logout(){try{await api('/auth/logout',{method:'POST'})}catch{}sessionStorage.clear();location.reload()}
+function showApp(){$('login').classList.add('hidden');$('app').classList.remove('hidden');$('who').textContent=`${me.name} • ${me.role}`;applyRole()}
+function applyRole(){const role=me?.role||'';document.querySelector('[data-p="financeiro"]').classList.toggle('hidden',!['Administrador','Gestor'].includes(role));document.querySelector('[data-p="usuarios"]').classList.toggle('hidden',role!=='Administrador');document.querySelector('[data-p="custos"]').classList.toggle('hidden',!['Administrador','Gestor'].includes(role));document.querySelector('[data-p="ficha"]').classList.toggle('hidden',!['Administrador','Gestor'].includes(role));document.querySelector('[data-p="cadastros"]').classList.toggle('hidden',!['Administrador','Gestor'].includes(role))}
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>openPanel(b.dataset.p,b));
+function openPanel(id,btn){document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));btn?.classList.add('active');$('pageTitle').textContent=btn?.textContent||id}
+async function getEntity(e){return api('/entities/'+e)}
+async function refreshAll(){try{const basics=await Promise.all(['orders','ops','materials','products','clients','workers','colors','shipments','productMaterials'].map(async e=>[e,await getEntity(e)]));cache=Object.fromEntries(basics);renderDashboard();renderOrders();renderProduction();renderQuality();renderStock();renderShipments();renderCadastros();renderFicha();if(['Administrador','Gestor'].includes(me.role)){await renderCosts();await renderFinance()}if(me.role==='Administrador')await renderUsers()}catch(e){alert(e.message)}}
+function totalOp(o){return num(o.M)+num(o.G)+num(o.GG)}function doneOp(o){return num(o.doneM)+num(o.doneG)+num(o.doneGG)}function pct(a,b){return b?Math.min(100,Math.round(a/b*100)):0}
+
+async function renderDashboard(){let alerts=[];try{alerts=await api('/alerts')}catch{}const open=(cache.orders||[]).filter(x=>!['Entregue','Cancelado'].includes(x.status)).length,target=(cache.ops||[]).reduce((a,o)=>a+totalOp(o),0),done=(cache.ops||[]).reduce((a,o)=>a+doneOp(o),0),low=(cache.materials||[]).filter(m=>num(m.stock)<=num(m.min)).length;$('dashboard').innerHTML=`<div class="grid"><div class="card metric"><span class="muted">Pedidos em aberto</span><b>${open}</b></div><div class="card metric"><span class="muted">Peças planejadas</span><b>${target}</b></div><div class="card metric"><span class="muted">Peças produzidas</span><b>${done}</b></div><div class="card metric"><span class="muted">Alertas de estoque</span><b>${low}</b></div></div><div class="grid2 section"><div class="card"><h2>Alertas</h2>${alerts.length?alerts.map(a=>`<div class="notice" style="margin:7px 0"><b>${esc(a.severity)} — ${esc(a.title)}</b><br><span class="muted">${esc(a.detail)}</span></div>`).join(''):'<span class="muted">Sem alertas.</span>'}</div><div class="card"><h2>Fluxo</h2><p>Pedido → Corte → OP → Apontamento → Qualidade → Expedição → Entrega</p><p class="muted">Baixa de materiais pela ficha técnica e financeiro integrado.</p></div></div>`}
+
+function renderOrders(){const can=['Administrador','Gestor'].includes(me.role);$('pedidos').innerHTML=`<div class="toolbar">${can?'<button class="btn" onclick="newOrder()">+ Novo pedido</button>':''}<button class="btn alt" onclick="refreshAll()">Atualizar</button></div><div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Modelo</th><th>Qtd.</th><th>Prazo</th><th>Status</th><th>Financeiro</th><th>Ações</th></tr></thead><tbody>${(cache.orders||[]).map(o=>`<tr><td>${esc(o.id)}</td><td>${esc(o.client)}</td><td>${esc(o.product)}</td><td>${o.qty}</td><td>${dateBR(o.due)}</td><td>${pill(o.status)}</td><td>${pill(o.financial_status||'Pendente')}</td><td><div class="toolbar"><button class="btn alt small" onclick="o
