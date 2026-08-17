@@ -48,3 +48,4 @@ PY
 node --check "$tmp_dir/app.js"
 node "$repo_root/tests/refresh-all.test.js"
 node "$repo_root/tests/catalog-crud.test.js"
+node "$repo_root/tests/quality-navigation.test.js"

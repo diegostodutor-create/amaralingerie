@@ -19,8 +19,7 @@ const warning = {
 };
 const rendered = [];
 const renderNames = [
-  'renderDashboard', 'renderOrders', 'renderProduction', 'renderQuality',
-  'renderStock', 'renderShipments', 'renderCadastros', 'renderFicha',
+  'renderDashboard', 'renderOrders', 'renderProduction', 'renderStock', 'renderShipments', 'renderCadastros', 'renderFicha',
 ];
 const renderers = Object.fromEntries(renderNames.map((name) => [name, () => rendered.push(name)]));
 const getEntity = async (entity) => {
