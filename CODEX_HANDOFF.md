@@ -507,32 +507,24 @@ Entretanto, **não edite `index.html` como fonte primária** sem entender o work
 O workflow de Pages monta o HTML com:
 
 ```bash
-cat parts/part*.txt > _site/index.html
+./scripts/build.sh
 ```
 
-Depois sincroniza `_site/index.html` para a raiz.
+A fonte `src/index.html` é copiada para `_site/index.html`. O arquivo da raiz deve permanecer sincronizado no próprio commit, sem commits automáticos do workflow.
 
-### Estrutura atual de parts
+### Estrutura atual do frontend
 
-O HTML histórico foi dividido em partes porque a publicação inicial foi feita por ferramentas que tinham limite de tamanho por operação.
-
-Há arquivos como:
+O HTML histórico foi consolidado em uma fonte convencional:
 
 ```text
-parts/part01.txt
-parts/part015.txt
-parts/part02.txt
-...
-parts/part07.txt
+src/index.html
 ```
 
-`part015.txt` foi inserido propositalmente entre `part01.txt` e `part02.txt` pela ordenação lexicográfica do shell para adicionar o JavaScript do menu móvel.
-
-Essa arquitetura é **brittle** e deve ser refatorada assim que possível.
+`scripts/build.sh` copia essa fonte para `_site/index.html`, e `scripts/check.sh` valida o artefato, a estrutura HTML essencial e a sintaxe JavaScript. O `index.html` da raiz é mantido sincronizado para compatibilidade com o GitHub Pages, mas não é a fonte primária.
 
 ### Prioridade técnica recomendada
 
-Transformar a fonte do frontend em um arquivo normal ou projeto estruturado, por exemplo:
+Separar gradualmente a fonte consolidada em arquivos dedicados, por exemplo:
 
 ```text
 src/index.html
@@ -557,12 +549,13 @@ Workflow:
 O workflow atual:
 
 1. checkout;
-2. concatena `parts/part*.txt` em `_site/index.html`;
+2. executa `scripts/build.sh`, copiando `src/index.html` para `_site/index.html`;
 3. cria `.nojekyll`;
-4. sincroniza `index.html` na raiz;
-5. configura Pages;
-6. envia artifact;
-7. faz deploy.
+4. configura Pages;
+5. envia artifact;
+6. faz deploy.
+
+O workflow não cria mais commits automáticos durante o deploy e usa apenas permissão de leitura para o conteúdo do repositório.
 
 O GitHub Pages já está habilitado.
 
@@ -761,11 +754,7 @@ Ordem sugerida:
 
 ### P1 — resiliência do carregamento
 
-O frontend histórico usa `Promise.all` para várias entidades em `refreshAll()`.
-
-Uma falha isolada pode derrubar o carregamento geral.
-
-Refatorar para `Promise.allSettled()` ou equivalente, mantendo módulos independentes e exibindo erro contextual por seção.
+`refreshAll()` já isola falhas das entidades carregadas em paralelo: mantém o último cache válido, inicializa listas ausentes com segurança e exibe um aviso com os módulos que não atualizaram. Como próxima evolução, adicionar estados de erro específicos dentro de cada painel e botão de nova tentativa por módulo.
 
 ### P2 — segurança
 

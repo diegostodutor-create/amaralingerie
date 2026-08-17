@@ -1,7 +1,0 @@
-iv class="field"><label>Nome</label><input id="uName"></div><div class="field"><label>Usuário</label><input id="uUser"></div><div class="field"><label>Senha inicial</label><input id="uPass" type="password"></div><div class="field"><label>Perfil</label><select id="uRole"><option>Gestor</option><option>Produção</option><option>Estoque</option><option>Expedição</option><option>Administrador</option></select></div><button class="btn" onclick="saveUser()">Criar</button>`)}
-async function saveUser(){try{await api('/users',{method:'POST',body:JSON.stringify({name:$('uName').value,username:$('uUser').value,password:$('uPass').value,role:$('uRole').value})});closeModal();await renderUsers()}catch(e){alert(e.message)}}function resetPass(id){const p=prompt('Nova senha (mínimo 8 caracteres):');if(!p)return;api('/users/'+id+'/password',{method:'POST',body:JSON.stringify({password:p})}).then(()=>alert('Senha alterada.')).catch(e=>alert(e.message))}async function toggleUser(id,active){try{await api('/users/'+id+'/active',{method:'PATCH',body:JSON.stringify({active})});await renderUsers()}catch(e){alert(e.message)}}
-
-(async()=>{if(token){try{me=JSON.parse(sessionStorage.getItem('amara_user')||'null')||await api('/me');showApp();await refreshAll()}catch{sessionStorage.clear();token=''}}})();
-</script>
-</body>
-</html>
